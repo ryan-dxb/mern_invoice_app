@@ -4,7 +4,9 @@ import "dotenv/config";
 import express from "express";
 import morgan from "morgan";
 import { morganMiddleware, systemLogs } from "./utils/Logger.js";
+import connectDB from "./config/connectDb.js";
 
+await connectDB();
 const app = express();
 
 // Middlewares
@@ -18,10 +20,14 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use(cookieParser());
 
-app.use(morganMiddleware);
+// app.use(morganMiddleware);
 
 // Routes
 app.get("/api/v1/test", (req, res) => {
+  res.json({ message: "API is running.." });
+});
+
+app.get("/", (req, res) => {
   res.send("API is running..");
 });
 
@@ -33,11 +39,11 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(
     chalk.blue.bold(
-      `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
+      `Server is running in ${process.env.NODE_ENV} mode on port ${PORT}`
     )
   );
 
-  systemLogs.info(
-    `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
-  );
+  // systemLogs.info(
+  //   `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
+  // );
 });
