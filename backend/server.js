@@ -7,6 +7,7 @@ import { morganMiddleware, systemLogs } from "./utils/Logger.js";
 import connectDB from "./config/connectDb.js";
 import mongoSanitize from "express-mongo-sanitize";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
+import authRoutes from "./routes/authRoutes.js";
 
 await connectDB();
 const app = express();
@@ -28,12 +29,10 @@ app.use(mongoSanitize());
 
 // Routes
 app.get("/api/v1/test", (req, res) => {
-  res.json({ message: "API is running.." });
+  res.json({ Hi: "Welcome to the Invoice App" });
 });
 
-app.get("/", (req, res) => {
-  res.send("API is running..");
-});
+app.use("/api/v1/auth", authRoutes);
 
 // Error Handler
 
@@ -41,7 +40,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 1997;
 
 app.listen(PORT, () => {
   console.log(

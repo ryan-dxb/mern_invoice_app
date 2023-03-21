@@ -1,104 +1,91 @@
 import bcrypt from "bcryptjs";
+import "dotenv/config";
 import mongoose from "mongoose";
 import validator from "validator";
-import { USER } from "../constants";
+import { USER } from "../constants/index.js";
 
-const { schema } = mongoose;
+const { Schema } = mongoose;
 
-const userSchema = new schema(
+const userSchema = new Schema(
   {
     email: {
       type: String,
       lowercase: true,
       unique: true,
-      required: [true, "can't be blank"],
+      required: true,
       validate: [validator.isEmail, "Please provide a valid email"],
     },
+
     username: {
       type: String,
+      required: true,
       unique: true,
       trim: true,
-      validator: [validator.isAlphanumeric, "Please provide a valid username"],
+      validate: {
+        validator: function (value) {
+          return /^[A-z][A-z0-9-_]{3,23}$/.test(value);
+        },
+        message:
+          "username must be alphanumeric,without special characters.Hyphens and underscores allowed",
+      },
     },
+
     firstName: {
       type: String,
+      required: true,
       trim: true,
-      validator: [validator.isAlpha, "Please provide a valid first name"],
+      validate: [
+        validator.isAlphanumeric,
+        "First Name can only have Alphanumeric values. No special characters allowed",
+      ],
     },
+
     lastName: {
       type: String,
+      required: true,
       trim: true,
-      validator: [validator.isAlpha, "Please provide a valid last name"],
+      validate: [
+        validator.isAlphanumeric,
+        "Last Name can only have Alphanumeric values. No special characters allowed",
+      ],
     },
     password: {
       type: String,
       select: false,
-      validator: [
+      validate: [
         validator.isStrongPassword,
-        "Please provide a valid password",
+        "Password must be at least 8 characters long, with at least 1 uppercase and lowercase letters and at least 1 symbol",
       ],
     },
     passwordConfirm: {
       type: String,
-      select: false,
       validate: {
-        validator: function (el) {
-          return el === this.password;
+        validator: function (value) {
+          return value === this.password;
         },
-        message: "Passwords are not the same!",
+        message: "Passwords do not match",
       },
     },
-    isEmailVerified: {
-      type: Boolean,
-      default: false,
-    },
+    isEmailVerified: { type: Boolean, required: true, default: false },
     provider: {
       type: String,
-      enum: ["email", "google", "facebook"],
+      required: true,
       default: "email",
     },
-    googleId: {
-      type: String,
-    },
-    facebookId: {
-      type: String,
-    },
-    avatar: {
-      type: String,
-    },
-    businessName: {
-      type: String,
-      trim: true,
-    },
-
+    googleID: String,
+    avatar: String,
+    businessName: String,
     phoneNumber: {
       type: String,
-      trim: true,
-      validator: [
+      default: "+254123456789",
+      validate: [
         validator.isMobilePhone,
-        "Please provide a valid phone number",
+        "Your mobile phone number must begin with a '+', followed by your  country code then actual number e.g +254123456789",
       ],
     },
-    address: {
-      type: String,
-      trim: true,
-    },
-    city: {
-      type: String,
-      trim: true,
-    },
-    // state: {
-    //     type: String,
-    //     trim: true,
-    // },
-    // zipCode: {
-    //     type: String,
-    //     trim: true,
-    // },
-    country: {
-      type: String,
-      trim: true,
-    },
+    address: String,
+    city: String,
+    country: String,
     passwordChangedAt: Date,
 
     roles: {
@@ -109,9 +96,7 @@ const userSchema = new schema(
       type: Boolean,
       default: true,
     },
-    refreshToken: {
-      type: [String],
-    },
+    refreshToken: [String],
   },
   {
     timestamps: true,
@@ -126,23 +111,27 @@ userSchema.pre("save", async function (next) {
 });
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password")) {
+    return next();
+  }
 
-  const salt = await bcrypt.genSalt(12);
+  const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  this.passwordConfirm = undefined;
 
+  this.passwordConfirm = undefined;
   next();
 });
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password") || this.isNew) return next();
+  if (!this.isModified("password") || this.isNew) {
+    return next();
+  }
 
-  this.passwordChangedAt = Date.now() - 1000;
+  this.passwordChangedAt = Date.now();
   next();
 });
 
-userSchema.methods.correctPassword = async function (givenPassword) {
+userSchema.methods.comparePassword = async function (givenPassword) {
   return await bcrypt.compare(givenPassword, this.password);
 };
 
